@@ -38,3 +38,10 @@ pg_bin()   {
   [ -n "$d" ] || die "postgres image is not unpacked - run ./setup.sh"
   echo "$d"
 }
+
+# Thread budget. Small boxes cap processes+threads (Upstash Box: pids.max=512) and the gateway starts ~15 npx MCP
+# servers plus a desktop Chrome; at the cap Chrome cannot start threads and every page load fails (net::ERR_ABORTED).
+# Every Node process (dashboard, proxy, gateway's MCP servers) inherits these: ~9 fewer threads each.
+# Override in .env (e.g. UV_THREADPOOL_SIZE=4) on bigger machines.
+export UV_THREADPOOL_SIZE="${UV_THREADPOOL_SIZE:-1}"
+case "${NODE_OPTIONS:-}" in *v8-pool-size*) ;; *) export NODE_OPTIONS="${NODE_OPTIONS:+$NODE_OPTIONS }--v8-pool-size=1" ;; esac

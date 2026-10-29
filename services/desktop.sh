@@ -28,6 +28,7 @@ exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b /etc/resolv.conf:/etc/resolv.
       rm -f /root/.nimbus-gateway/browser-mcp-profile/Singleton*
       /opt/google/chrome/google-chrome --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-restore-session \
         --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
+        --in-process-gpu --renderer-process-limit=1 --disable-background-networking --disable-component-update --disable-breakpad \
         --user-data-dir=/root/.nimbus-gateway/browser-mcp-profile --disable-blink-features=AutomationControlled \
         "${NIMBUS_BROWSER_START_URL:-http://localhost:3000}" >/dev/null 2>&1 &
     fi
