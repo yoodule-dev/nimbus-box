@@ -87,3 +87,17 @@ Linux `arm64` or `amd64`; `curl python3 tar sha256sum setsid`; glibc >= 2.36 (De
 ## Desktop (VNC)
 
 `./start.sh` also starts the Nimbus desktop (Xvfb + x11vnc + noVNC). The proxy on `:3000` publishes it at `/desktop/` (websocket at `/websockify`), so the same public URL serves the dashboard and the desktop; the dashboard VNC panel is pointed there automatically. The VNC password is `VNC_PASSWORD` in `.env`.
+
+## Setting keys and tokens (`env.sh`)
+
+Don't hand-edit `.env`; `./env.sh` merges `KEY=value` pairs into it (quoting, comments and file mode are handled, values are never printed):
+
+```bash
+./env.sh OPENAI_API_KEYS=sk-... NOTION_TOKEN=ntn_...      # as arguments
+./env.sh 'A=1 B="two words"'                              # one string of pairs
+./env.sh -f my.env --restart                              # a whole .env-style file, then restart
+cat my.env | ./env.sh                                     # or on stdin
+./env.sh --list                                           # which keys are set / empty
+```
+
+Existing keys are updated in place, new ones appended, the old file is kept as `.env.bak`. Restart (`./env.sh --restart`) to apply.
