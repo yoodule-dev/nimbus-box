@@ -29,7 +29,7 @@ exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b /etc/resolv.conf:/etc/resolv.
     #                                      first connection and stops it after NIMBUS_BROWSER_IDLE_SECONDS (300) idle
     #   NIMBUS_DESKTOP_BROWSER=always      start Chrome now and keep it running
     #   NIMBUS_DESKTOP_BROWSER=0           no Chrome
-    CHROME="/opt/google/chrome/google-chrome --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-restore-session --remote-debugging-address=127.0.0.1 --in-process-gpu --renderer-process-limit=1 --disable-background-networking --disable-component-update --disable-breakpad --user-data-dir=/root/.nimbus-gateway/browser-mcp-profile --disable-blink-features=AutomationControlled"
+    CHROME="/opt/google/chrome/google-chrome --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-restore-session --remote-debugging-address=127.0.0.1 --in-process-gpu --renderer-process-limit=1 --disable-background-networking --disable-component-update --disable-breakpad --disable-extensions --disable-sync --disable-default-apps --mute-audio --no-default-browser-check --disable-features=site-per-process,IsolateOrigins,Translate,OptimizationHints,MediaRouter,AutofillServerCommunication,CertificateTransparencyComponentUpdater --num-raster-threads=1 --disable-software-rasterizer --js-flags=--max-old-space-size=256 --enable-features=NetworkServiceInProcess2 --user-data-dir=/root/.nimbus-gateway/browser-mcp-profile --disable-blink-features=AutomationControlled"
     URL="${NIMBUS_BROWSER_START_URL:-http://localhost:3000}"
     case "${NIMBUS_DESKTOP_BROWSER:-1}" in
       0) ;;
