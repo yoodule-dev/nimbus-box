@@ -4,7 +4,7 @@ Run [Nimbus](https://github.com/Yoodule/nimbus) on a machine with **no Docker an
 (Upstash Boxes, locked-down VMs, CI sandboxes, ...). One clone, one command:
 
 ```bash
-git clone <this-repo> nimbus-box && cd nimbus-box
+git clone https://github.com/yoodule-dev/nimbus-box.git && cd nimbus-box
 ./setup.sh      # downloads + unpacks everything, generates secrets (~5-10 min, ~4.5 GB)
 ./start.sh      # starts the whole stack (~1 min)
 ```
