@@ -90,14 +90,11 @@ Linux `arm64` or `amd64`; `curl python3 tar sha256sum setsid`; glibc >= 2.36 (De
 
 ## Setting keys and tokens (`env.sh`)
 
-Don't hand-edit `.env`; `./env.sh` merges `KEY=value` pairs into it (quoting, comments and file mode are handled, values are never printed):
+Don't hand-edit `.env`. Put your keys in one quoted string; `env.sh` merges them into `.env` and restarts the stack:
 
 ```bash
-./env.sh OPENAI_API_KEYS=sk-... NOTION_TOKEN=ntn_...      # as arguments
-./env.sh 'A=1 B="two words"'                              # one string of pairs
-./env.sh -f my.env --restart                              # a whole .env-style file, then restart
-cat my.env | ./env.sh                                     # or on stdin
-./env.sh --list                                           # which keys are set / empty
+./env.sh 'OPENAI_API_KEYS=sk-... NOTION_TOKEN=ntn_... EXA_API_KEY=...'
 ```
 
-Existing keys are updated in place, new ones appended, the old file is kept as `.env.bak`. Restart (`./env.sh --restart`) to apply.
+Use **single quotes** (so `$` etc. in values are left alone); wrap a value with spaces in double quotes inside the string. Existing keys are updated in place, new ones appended, quoting/comments/file mode are handled, values are never printed, and the old file is kept as `.env.bak`.
+Other forms: `./env.sh -f my.env`, `cat my.env | ./env.sh`, `./env.sh --no-restart ...` (write only), `./env.sh --list` (which keys are set/empty).

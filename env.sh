@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
 # Add or update variables in the Nimbus .env without hand-editing it.
 #
-#   ./env.sh KEY=value [KEY2=value2 ...]      one or more pairs as arguments
-#   ./env.sh 'A=1 B="two words" C=3'          one quoted string of pairs
+#   ./env.sh 'KEY=value KEY2=value2 ...'      the simple way: ONE quoted string of pairs (single quotes)
+#   ./env.sh KEY=value KEY2=value2            or one pair per argument
 #   ./env.sh < my.env                         a whole .env-style file on stdin
-#   cat my.env | ./env.sh --restart           ... and restart the stack afterwards
+#   cat my.env | ./env.sh                     ... same, piped
 #   ./env.sh -f /path/to/my.env               same as stdin, from a file
+#   ./env.sh --no-restart ...                 write only; restart later with ./stop.sh && ./start.sh
 #   ./env.sh --list                           which keys are set / empty (never prints values)
 #
 # Standard .env rules are respected: blank lines and # comments are ignored, a leading `export `
@@ -19,13 +20,14 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 . lib/common.sh
 
 ENV_FILE="${ENV_FILE:-$H/.env}"
-restart=0; list=0; src=""; args=()
+restart=1; list=0; src=""; args=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --restart) restart=1 ;;
+    --no-restart) restart=0 ;;
     --list)    list=1 ;;
     -f|--file) shift; [ $# -gt 0 ] || die "-f needs a file"; src="$1" ;;
-    -h|--help) sed -n '2,17p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,18p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *)         args+=("$1") ;;
   esac
   shift
@@ -131,5 +133,5 @@ if [ "$restart" = 1 ]; then
   log "restarting so the new values take effect"
   ./stop.sh; ./start.sh
 else
-  echo "Restart to apply:  ./env.sh --restart   (or ./stop.sh && ./start.sh)"
+  echo "Not restarted. Apply with: ./stop.sh && ./start.sh"
 fi
