@@ -8,7 +8,7 @@ While nothing uses the browser, no Chrome processes exist, which keeps small box
 
 Control port (LAZY_CONTROL_PORT, default 9224): a client that sends "LOCK\n" gets Chrome stopped, receives "OK\n",
 and holds the lock for as long as it keeps the connection open. While any lock is held Chrome is not started;
-CDP connections wait up to LAZY_LOCK_WAIT seconds (default 90) for the lock to be released. linkedin-chrome.py
+CDP connections wait for the lock (LAZY_LOCK_WAIT seconds, default 0 = as long as it takes) for the lock to be released. linkedin-chrome.py
 uses this so linkedin-mcp's own Chromium and this one never run together (a small box cannot fit both).
 """
 import asyncio, glob, os, signal, subprocess, sys, time
@@ -17,7 +17,7 @@ PORT = int(os.environ.get('LAZY_PORT', '9222'))
 BACK = int(os.environ.get('LAZY_BACKEND_PORT', '9223'))
 CONTROL = int(os.environ.get('LAZY_CONTROL_PORT', '9224'))
 IDLE = int(os.environ.get('LAZY_IDLE_SECONDS', '300'))
-LOCK_WAIT = int(os.environ.get('LAZY_LOCK_WAIT', '90'))
+LOCK_WAIT = int(os.environ.get('LAZY_LOCK_WAIT', '0'))  # 0 = wait for the lock as long as it takes
 PROFILE = os.environ.get('LAZY_PROFILE_DIR', '')
 CMD = sys.argv[1:]
 if not CMD:
@@ -56,7 +56,7 @@ async def stop_chrome():
 
 async def ensure():
     global proc
-    deadline = time.time() + LOCK_WAIT
+    deadline = time.time() + LOCK_WAIT if LOCK_WAIT > 0 else float("inf")
     while locks > 0 and time.time() < deadline:
         await asyncio.sleep(0.5)
     if locks > 0:

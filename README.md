@@ -105,7 +105,7 @@ browser-mcp attaches to Chrome's DevTools endpoint on `:9222`. By default `servi
 
 ### One browser at a time (small boxes)
 
-A box with a 512 process/thread cap (Upstash Box) cannot run two Chromium browsers at once, so browser-mcp's Chrome and linkedin-mcp's own Chromium take turns. `services/gateway.sh` runs `services/mcp-overlay.py` on every start, which sets `CHROME_PATH` for `linkedin-mcp` in `release/mcp.json` to `services/linkedin-chrome.py`. That wrapper asks `services/lazy-chrome.py` (control port `9224`) to stop Chrome and keep it stopped while linkedin's browser is open; a browser-mcp request in that time waits up to 90 seconds, then Chrome starts again on demand. With `NIMBUS_DESKTOP_BROWSER=always` or `0` there is no launcher, and linkedin's browser simply starts as normal.
+A box with a 512 process/thread cap (Upstash Box) cannot run two Chromium browsers at once, so browser-mcp's Chrome and linkedin-mcp's own Chromium take turns. `services/gateway.sh` runs `services/mcp-overlay.py` on every start, which sets `CHROME_PATH` for `linkedin-mcp` in `release/mcp.json` to `services/linkedin-chrome.py`. That wrapper asks `services/lazy-chrome.py` (control port `9224`) to stop Chrome and keep it stopped while linkedin's browser is open; a browser-mcp request in that time waits until linkedin's browser closes (set `LAZY_LOCK_WAIT=<seconds>` to cap the wait; default `0` = no cap), then Chrome starts again on demand. With `NIMBUS_DESKTOP_BROWSER=always` or `0` there is no launcher, and linkedin's browser simply starts as normal.
 
 ### Thread limits for MCP servers
 
