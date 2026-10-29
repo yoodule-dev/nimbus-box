@@ -5,13 +5,23 @@
 // serves, so the page never opens. This proxy marks requests as https so redirects stay on https.
 //
 // env: PORT (listen, default 3000), TARGET_HOST (default 127.0.0.1), TARGET_PORT (default 7000),
-//      PROXY_FORWARD_PROTO (default https; set to http when serving plain http on a LAN)
+//      PROXY_FORWARD_PROTO (default https; set to http when serving plain http on a LAN),
+//      DESKTOP_PORT (noVNC, default 6080): /desktop/* (prefix stripped) and /websockify go there
 const http = require('http');
 const net = require('net');
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const TARGET = { host: process.env.TARGET_HOST || '127.0.0.1', port: parseInt(process.env.TARGET_PORT || '7000', 10) };
 const PROTO = process.env.PROXY_FORWARD_PROTO || 'https';
+const DESKTOP = { host: '127.0.0.1', port: parseInt(process.env.DESKTOP_PORT || '6080', 10) };
+
+// pick upstream + rewritten path: noVNC lives under /desktop/ (and its websocket at /websockify)
+const route = (url) => {
+  if (url === '/desktop') return { t: DESKTOP, path: '/vnc.html' };
+  if (url.startsWith('/desktop/')) return { t: DESKTOP, path: url.slice('/desktop'.length) };
+  if (url.startsWith('/websockify')) return { t: DESKTOP, path: url };
+  return { t: TARGET, path: url };
+};
 
 const fwd = (req) => ({
   ...req.headers,
@@ -20,22 +30,24 @@ const fwd = (req) => ({
 });
 
 const server = http.createServer((req, res) => {
-  const up = http.request({ ...TARGET, method: req.method, path: req.url, headers: fwd(req) }, (r) => {
+  const r0 = route(req.url);
+  const up = http.request({ ...r0.t, method: req.method, path: r0.path, headers: fwd(req) }, (r) => {
     res.writeHead(r.statusCode, r.headers);
     r.pipe(res);
   });
   up.on('error', () => {
     if (!res.headersSent) res.writeHead(502, { 'content-type': 'text/plain' });
-    res.end('Nimbus dashboard is not reachable (is it still starting? try ./status.sh)');
+    res.end('Upstream is not reachable (is it still starting? try ./status.sh)');
   });
   req.pipe(up);
 });
 
 // websockets (VNC view etc.)
 server.on('upgrade', (req, socket, head) => {
-  const up = net.connect(TARGET.port, TARGET.host, () => {
+  const r0 = route(req.url);
+  const up = net.connect(r0.t.port, r0.t.host, () => {
     const h = Object.entries(fwd(req)).map(([k, v]) => `${k}: ${v}`).join('\r\n');
-    up.write(`${req.method} ${req.url} HTTP/1.1\r\n${h}\r\n\r\n`);
+    up.write(`${req.method} ${r0.path} HTTP/1.1\r\n${h}\r\n\r\n`);
     up.write(head);
     up.pipe(socket);
     socket.pipe(up);

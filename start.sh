@@ -28,6 +28,7 @@ start_svc redis     "$REDIS_PORT"     15
 start_svc qdrant    "$QDRANT_PORT"    30
 start_svc gateway   "$GATEWAY_PORT"   180
 start_svc dashboard "$DASHBOARD_PORT" 180
+start_svc desktop   "${DESKTOP_PORT:-6080}" 60   # noVNC desktop (needs the gateway to have created vnc_passwd)
 
 log "Nimbus is running"
 echo "   dashboard  http://localhost:$DASHBOARD_PORT   (public/preview: expose :$PROXY_PORT)"

@@ -13,5 +13,7 @@ if [ -z "${NIMBUS_DASHBOARD_URL:-}" ] && [ -n "${UPSTASH_BOX_ID:-}" ]; then
   NIMBUS_DASHBOARD_URL="https://${UPSTASH_BOX_ID}-${PROXY_PORT}.preview.box.upstash.com"
 fi
 [ -n "${NIMBUS_DASHBOARD_URL:-}" ] && export BETTER_AUTH_URL="$NIMBUS_DASHBOARD_URL"
+# VNC panel in the dashboard: noVNC is published by the proxy under /desktop/
+[ -n "${NIMBUS_DASHBOARD_URL:-}" ] && export NEXT_PUBLIC_VNC_URL="${NIMBUS_VNC_URL:-${NIMBUS_DASHBOARD_URL%/}/desktop}"
 exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b /etc/resolv.conf:/etc/resolv.conf \
   -w /app node server.js

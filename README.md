@@ -83,3 +83,7 @@ Linux `arm64` or `amd64`; `curl python3 tar sha256sum setsid`; glibc >= 2.36 (De
 * The gateway logs `Redis connection error in cancellation listener` warnings; core task queues work. Cause not yet found.
 * Services do not auto-restart when the host reboots - run `./start.sh` again.
 * Not affiliated with Yoodule/Nimbus. Tested on Debian 12 / aarch64 (Upstash Box).
+
+## Desktop (VNC)
+
+`./start.sh` also starts the Nimbus desktop (Xvfb + x11vnc + noVNC). The proxy on `:3000` publishes it at `/desktop/` (websocket at `/websockify`), so the same public URL serves the dashboard and the desktop; the dashboard VNC panel is pointed there automatically. The VNC password is `VNC_PASSWORD` in `.env`.
