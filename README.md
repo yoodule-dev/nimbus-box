@@ -98,3 +98,7 @@ Don't hand-edit `.env`. Put your keys in one quoted string; `env.sh` merges them
 
 Use **single quotes** (so `$` etc. in values are left alone); wrap a value with spaces in double quotes inside the string. Existing keys are updated in place, new ones appended, quoting/comments/file mode are handled, values are never printed, and the old file is kept as `.env.bak`.
 Other forms: `./env.sh -f my.env`, `cat my.env | ./env.sh`, `./env.sh --no-restart ...` (write only), `./env.sh --list` (which keys are set/empty).
+
+## Browser (on demand)
+
+browser-mcp attaches to Chrome's DevTools endpoint on `:9222`. By default `services/lazy-chrome.py` owns that port: Chrome starts on the first connection and is stopped after `NIMBUS_BROWSER_IDLE_SECONDS` (default 300) with no connection, so an idle box has no Chrome (about 135 fewer processes/threads on a small box). Set `NIMBUS_DESKTOP_BROWSER=always` in `.env` to keep Chrome running, or `0` to disable it. Sign-ins live in the Chrome profile and survive restarts of Chrome.

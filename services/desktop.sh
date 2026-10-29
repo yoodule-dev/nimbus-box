@@ -16,7 +16,7 @@ if [ ! -s "$H/data/gateway-auth/vnc_passwd" ]; then
   [ -s "$H/data/gateway-auth/vnc_passwd" ] || die "could not create vnc_passwd"
 fi
 exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b /etc/resolv.conf:/etc/resolv.conf \
-  -b "$H/data/gateway-auth:/app/data/auth" -b "$H/data/gateway-home:/root/.nimbus-gateway" -w /root \
+  -b "$H/data/gateway-auth:/app/data/auth" -b "$H/data/gateway-home:/root/.nimbus-gateway" -b "$REPO_DIR/services:/opt/nimbus-services" -w /root \
   /bin/bash -c '
     export DISPLAY=:1 HOME=/root
     rm -f /tmp/.X1-lock /tmp/.X11-unix/X1
@@ -24,14 +24,24 @@ exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b /etc/resolv.conf:/etc/resolv.
     for i in $(seq 1 40); do xset -display :1 q >/dev/null 2>&1 && break; sleep 0.5; done
     fluxbox >/dev/null 2>&1 &
     x11vnc -display :1 -rfbauth /app/data/auth/vnc_passwd -rfbport 5900 -localhost -forever -shared -noxdamage -quiet >/dev/null 2>&1 &
-    if [ "${NIMBUS_DESKTOP_BROWSER:-1}" = 1 ]; then
-      rm -f /root/.nimbus-gateway/browser-mcp-profile/Singleton*
-      /opt/google/chrome/google-chrome --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-restore-session \
-        --remote-debugging-port=9222 --remote-debugging-address=127.0.0.1 \
-        --in-process-gpu --renderer-process-limit=1 --disable-background-networking --disable-component-update --disable-breakpad \
-        --user-data-dir=/root/.nimbus-gateway/browser-mcp-profile --disable-blink-features=AutomationControlled \
-        "${NIMBUS_BROWSER_START_URL:-http://localhost:3000}" >/dev/null 2>&1 &
-    fi
+    # Chrome for browser-mcp (it attaches to the DevTools endpoint on :9222).
+    #   NIMBUS_DESKTOP_BROWSER=1 (default) on demand: services/lazy-chrome.py owns :9222, starts Chrome on the
+    #                                      first connection and stops it after NIMBUS_BROWSER_IDLE_SECONDS (300) idle
+    #   NIMBUS_DESKTOP_BROWSER=always      start Chrome now and keep it running
+    #   NIMBUS_DESKTOP_BROWSER=0           no Chrome
+    CHROME="/opt/google/chrome/google-chrome --no-sandbox --disable-gpu --disable-dev-shm-usage --no-first-run --no-restore-session --remote-debugging-address=127.0.0.1 --in-process-gpu --renderer-process-limit=1 --disable-background-networking --disable-component-update --disable-breakpad --user-data-dir=/root/.nimbus-gateway/browser-mcp-profile --disable-blink-features=AutomationControlled"
+    URL="${NIMBUS_BROWSER_START_URL:-http://localhost:3000}"
+    case "${NIMBUS_DESKTOP_BROWSER:-1}" in
+      0) ;;
+      always)
+        rm -f /root/.nimbus-gateway/browser-mcp-profile/Singleton*
+        $CHROME --remote-debugging-port=9222 "$URL" >/dev/null 2>&1 &
+        ;;
+      *)
+        LAZY_PROFILE_DIR=/root/.nimbus-gateway/browser-mcp-profile LAZY_IDLE_SECONDS="${NIMBUS_BROWSER_IDLE_SECONDS:-300}" \
+          python3 /opt/nimbus-services/lazy-chrome.py $CHROME --remote-debugging-port=9223 "$URL" >/dev/null 2>&1 &
+        ;;
+    esac
     export PYTHONPATH=/opt/novnc/utils/websockify
     exec python3 -m websockify --web /opt/novnc 127.0.0.1:6080 127.0.0.1:5900
   '
