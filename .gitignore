@@ -1,0 +1,10 @@
+# never commit secrets or unpacked images
+.env
+*.env
+!.env.example
+nimbus-box/
+images/
+data/
+logs/
+run/
+*.log
