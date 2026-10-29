@@ -102,3 +102,7 @@ Other forms: `./env.sh -f my.env`, `cat my.env | ./env.sh`, `./env.sh --no-resta
 ## Browser (on demand)
 
 browser-mcp attaches to Chrome's DevTools endpoint on `:9222`. By default `services/lazy-chrome.py` owns that port: Chrome starts on the first connection and is stopped after `NIMBUS_BROWSER_IDLE_SECONDS` (default 300) with no connection, so an idle box has no Chrome (about 135 fewer processes/threads on a small box). Set `NIMBUS_DESKTOP_BROWSER=always` in `.env` to keep Chrome running, or `0` to disable it. Sign-ins live in the Chrome profile and survive restarts of Chrome.
+
+### One browser at a time (small boxes)
+
+A box with a 512 process/thread cap (Upstash Box) cannot run two Chromium browsers at once, so browser-mcp's Chrome and linkedin-mcp's own Chromium take turns. `services/gateway.sh` runs `services/mcp-overlay.py` on every start, which sets `CHROME_PATH` for `linkedin-mcp` in `release/mcp.json` to `services/linkedin-chrome.py`. That wrapper asks `services/lazy-chrome.py` (control port `9224`) to stop Chrome and keep it stopped while linkedin's browser is open; a browser-mcp request in that time waits up to 90 seconds, then Chrome starts again on demand. With `NIMBUS_DESKTOP_BROWSER=always` or `0` there is no launcher, and linkedin's browser simply starts as normal.

@@ -17,8 +17,11 @@ if [ -n "${NIMBUS_PUBLIC_HOST:-}" ]; then   # e.g. gateway.example.com
   hosts="$hosts,$NIMBUS_PUBLIC_HOST"; origins="$origins,https://$NIMBUS_PUBLIC_HOST"
 fi
 export MCP_ALLOWED_HOSTS="$hosts" MCP_ALLOWED_ORIGINS="$origins"
+# linkedin-mcp starts its own Chromium; make it take turns with browser-mcp Chrome (see services/lazy-chrome.py).
+python3 "$REPO_DIR/services/mcp-overlay.py" "$H/release/mcp.json"
 exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev \
   -b /etc/resolv.conf:/etc/resolv.conf \
   -b "$H/data/gateway-auth:/app/data/auth" \
   -b "$H/release/mcp.json:/app/mcp.json" \
+  -b "$REPO_DIR/services:/opt/nimbus-services" \
   -w /app /entrypoint.sh
