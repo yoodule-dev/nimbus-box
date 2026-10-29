@@ -7,7 +7,14 @@ set -euo pipefail
 . "$(dirname "$0")/../lib/common.sh"; load_env
 R="$(img gateway)"
 mkdir -p "$H/data/gateway-auth" "$H/data/gateway-home"
-[ -s "$H/data/gateway-auth/vnc_passwd" ] || die "vnc_passwd missing - start the gateway once (it creates it from VNC_PASSWORD)"
+# x11vnc password file: the gateway normally creates it from VNC_PASSWORD; if it has not yet (fresh install,
+# desktop starts right after the gateway), create it here so the desktop never depends on that timing.
+if [ ! -s "$H/data/gateway-auth/vnc_passwd" ]; then
+  [ -n "${VNC_PASSWORD:-}" ] || die "VNC_PASSWORD is not set in $H/.env (run ./setup.sh)"
+  "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b "$H/data/gateway-auth:/app/data/auth" \
+    x11vnc -storepasswd "$VNC_PASSWORD" /app/data/auth/vnc_passwd >/dev/null 2>&1
+  [ -s "$H/data/gateway-auth/vnc_passwd" ] || die "could not create vnc_passwd"
+fi
 exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev -b /etc/resolv.conf:/etc/resolv.conf \
   -b "$H/data/gateway-auth:/app/data/auth" -b "$H/data/gateway-home:/root/.nimbus-gateway" -w /root \
   /bin/bash -c '
