@@ -110,3 +110,7 @@ A box with a 512 process/thread cap (Upstash Box) cannot run two Chromium browse
 ### Thread limits for MCP servers
 
 The gateway starts each MCP server with only the `env` block from `release/mcp.json`, so limits exported in the shell do not reach them. `services/mcp-overlay.py` (run by `services/gateway.sh` on every start) sets `UV_THREADPOOL_SIZE=1` and `NODE_OPTIONS=--v8-pool-size=1` on every `npx`/`node` server, which takes about 3 to 7 threads off each Node process. Override with `UV_THREADPOOL_SIZE` or `NIMBUS_V8_POOL_SIZE` in `.env` on bigger machines (`NIMBUS_V8_POOL_SIZE=0` leaves `NODE_OPTIONS` alone).
+
+### Whichever browser asks last wins
+
+On a box with a 512 process/thread cap, browser-mcp's Chrome and linkedin-mcp's Chromium cannot both run. A linkedin request kills Chrome at once (`services/linkedin-chrome.py` -> `services/lazy-chrome.py` control port 9224). A browser-mcp request kills linkedin's **headless** browser (the wrapper reports its mode and pid with `LOCK headless <pid>`). A **headed** linkedin browser (the interactive login) is never preempted; browser-mcp waits for it. `services/linkedin-patch.py` (run by `services/gateway.sh` on every start) makes linkedin-mcp probe its browser before reuse, so after a preemption the next linkedin call opens a fresh browser instead of failing on a dead one. A linkedin call that was running when it got preempted fails and can be retried.

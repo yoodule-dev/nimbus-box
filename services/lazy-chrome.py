@@ -26,6 +26,7 @@ if not CMD:
 proc = None
 conns = 0
 locks = 0
+holders = {}      # id -> (mode, pid) of every open LOCK; mode is 'headless' or 'headed'
 last = time.time()
 lock = None
 
@@ -55,8 +56,41 @@ async def stop_chrome(grace=15):
     await asyncio.get_running_loop().run_in_executor(None, kill)
 
 
+def kill_tree(pid):
+    """SIGKILL pid and all its descendants (linkedin's headless Chromium)."""
+    kids = {}
+    for d in glob.glob('/proc/[0-9]*'):
+        try:
+            st = open(d + '/stat').read()
+            kids.setdefault(int(st[st.rindex(')') + 2:].split()[1]), []).append(int(d[6:]))
+        except Exception:
+            pass
+    todo, order = [pid], []
+    while todo:
+        q = todo.pop()
+        order.append(q)
+        todo.extend(kids.get(q, []))
+    for q in reversed(order):
+        try:
+            os.kill(q, signal.SIGKILL)
+        except Exception:
+            pass
+
+
+async def preempt_headless():
+    """A browser-mcp request outranks a headless linkedin browser: close it. A headed one (login) is left alone."""
+    if locks > 0 and holders and all(m == 'headless' for m, _ in holders.values()):
+        for _, pid in list(holders.values()):
+            kill_tree(pid)
+        for _ in range(40):
+            if locks == 0:
+                break
+            await asyncio.sleep(0.25)
+
+
 async def ensure():
     global proc
+    await preempt_headless()
     deadline = time.time() + LOCK_WAIT if LOCK_WAIT > 0 else float("inf")
     while locks > 0 and time.time() < deadline:
         await asyncio.sleep(0.5)
@@ -127,7 +161,15 @@ async def control(r, w):
     held = False
     try:
         line = await asyncio.wait_for(r.readline(), 5)
-        if line.strip() == b'LOCK':
+        parts = line.split()
+        if parts and parts[0] == b'LOCK':
+            hid = id(w)
+            mode = parts[1].decode() if len(parts) > 1 else 'headed'
+            pid = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else 0
+            if mode == 'headless' and pid > 1:
+                holders[hid] = (mode, pid)
+            else:
+                holders[hid] = ('headed', 0)
             locks += 1
             held = True
             await stop_chrome(1)    # linkedin has priority: no politeness, no waiting for a Chrome that is still starting
@@ -139,6 +181,7 @@ async def control(r, w):
     finally:
         if held:
             locks -= 1
+            holders.pop(id(w), None)
         last = time.time()
         try:
             w.close()

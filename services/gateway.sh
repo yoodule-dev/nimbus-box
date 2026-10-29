@@ -19,6 +19,7 @@ fi
 export MCP_ALLOWED_HOSTS="$hosts" MCP_ALLOWED_ORIGINS="$origins"
 # linkedin-mcp starts its own Chromium; make it take turns with browser-mcp Chrome (see services/lazy-chrome.py).
 python3 "$REPO_DIR/services/mcp-overlay.py" "$H/release/mcp.json"
+python3 "$REPO_DIR/services/linkedin-patch.py" "$R/app/servers/linkedin-mcp/linkedin_mcp_server/drivers/browser.py"
 exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev \
   -b /etc/resolv.conf:/etc/resolv.conf \
   -b "$H/data/gateway-auth:/app/data/auth" \

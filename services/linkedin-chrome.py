@@ -21,7 +21,8 @@ exe = cands[-1]
 try:
     s = socket.create_connection(('127.0.0.1', port), 2)
     s.settimeout(wait)
-    s.sendall(b'LOCK\n')
+    mode = 'headless' if any(a.startswith('--headless') for a in sys.argv) else 'headed'
+    s.sendall(('LOCK %s %d\n' % (mode, os.getpid())).encode())   # pid survives the execv below
     if s.recv(16).startswith(b'OK'):
         s.settimeout(None)
         os.set_inheritable(s.fileno(), True)
