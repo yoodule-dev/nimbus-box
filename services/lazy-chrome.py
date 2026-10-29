@@ -34,7 +34,7 @@ def alive():
     return proc is not None and proc.poll() is None
 
 
-async def stop_chrome():
+async def stop_chrome(grace=15):
     global proc
     p = proc
     proc = None
@@ -44,12 +44,13 @@ async def stop_chrome():
     def kill():
         try:
             os.killpg(p.pid, signal.SIGTERM)
-            p.wait(timeout=15)
+            p.wait(timeout=grace)
         except Exception:
-            try:
-                os.killpg(p.pid, signal.SIGKILL)
-            except Exception:
-                pass
+            pass
+        try:
+            os.killpg(p.pid, signal.SIGKILL)    # sweep stragglers so they do not keep eating the process cap
+        except Exception:
+            pass
 
     await asyncio.get_running_loop().run_in_executor(None, kill)
 
@@ -129,8 +130,7 @@ async def control(r, w):
         if line.strip() == b'LOCK':
             locks += 1
             held = True
-            async with lock:
-                await stop_chrome()
+            await stop_chrome(1)    # linkedin has priority: no politeness, no waiting for a Chrome that is still starting
             w.write(b'OK\n')
             await w.drain()
             await r.read()          # hold the lock until the client closes the connection
