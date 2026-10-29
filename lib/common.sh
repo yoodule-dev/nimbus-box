@@ -22,6 +22,7 @@ case "$(uname -m)" in
 esac
 
 PG_PORT=5432; REDIS_PORT=6379; QDRANT_PORT=6333; GATEWAY_PORT=8088; DASHBOARD_PORT=7000
+PROXY_PORT="${PROXY_PORT:-3000}"   # https-aware front door for the dashboard; expose THIS port, not 7000
 
 log()  { printf '\033[1;34m==>\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarn:\033[0m %s\n' "$*" >&2; }

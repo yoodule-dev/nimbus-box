@@ -3,7 +3,7 @@
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"
 . lib/common.sh
-for name in dashboard gateway qdrant redis postgres; do
+for name in proxy dashboard gateway qdrant redis postgres; do
   pidf="$H/run/$name.pid"; [ -f "$pidf" ] || continue
   pid=$(cat "$pidf")
   if kill -0 "$pid" 2>/dev/null; then

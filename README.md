@@ -9,7 +9,7 @@ git clone https://github.com/yoodule-dev/nimbus-box.git && cd nimbus-box
 ./start.sh      # starts the whole stack (~1 min)
 ```
 
-Then open the dashboard on port **7000**; the gateway MCP endpoint is on port **8088** (`/mcp`).
+Then open the dashboard on port **3000** (an https-aware proxy in front of the dashboard on 7000, see below); the gateway MCP endpoint is on port **8088** (`/mcp`).
 Add your LLM key to `$NIMBUS_BOX_HOME/.env` (`OPENROUTER_API_KEYS=...`) and run `./stop.sh && ./start.sh`.
 
 | command | what it does |
@@ -17,6 +17,26 @@ Add your LLM key to `$NIMBUS_BOX_HOME/.env` (`OPENROUTER_API_KEYS=...`) and run 
 | `./setup.sh` | installs the latest release (or `NIMBUS_VERSION=v1.2.2 ./setup.sh`); safe to re-run |
 | `./start.sh` / `./stop.sh` | start / stop all services (each in its own process group, no orphans) |
 | `./status.sh` | shows which ports are up |
+
+## Public URL / Upstash Box preview (plug and play)
+
+Expose port **3000**, not 7000. Port 3000 is a tiny zero-dependency proxy (`proxy/server.js`, started by
+`./start.sh`, runs on the dashboard image's node) that fixes the "sign-in page never opens" problem behind
+preview/edge proxies: they terminate TLS but do not send `X-Forwarded-Proto`, so the dashboard redirected to
+`http://...`, which nothing serves.
+
+On an Upstash Box that is all you need:
+
+1. `./setup.sh && ./start.sh`
+2. create a preview for port **3000** (Box console, API or MCP `box_preview create`)
+3. open `https://<box-id>-3000.preview.box.upstash.com` and create the first (admin) account right away
+   (`NIMBUS_SIGN_UP_MODE=first_user_only`: whoever registers first is admin).
+
+`NIMBUS_DASHBOARD_URL` (sign-in base URL) is derived automatically from `UPSTASH_BOX_ID`; elsewhere set it in
+`.env` to your public URL. `PROXY_PORT` changes the port; `PROXY_FORWARD_PROTO=http` if you serve plain http.
+
+The gateway image also tries to bind :3000 itself (a `socat` to the docker-only host `dashboard`); the proxy
+starts first so it wins, and that `socat` error in the gateway log is harmless.
 
 ## If you have Docker, don't use this
 
