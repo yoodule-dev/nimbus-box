@@ -9,7 +9,11 @@ mkdir -p "$H/run" "$H/logs"
 start_svc() {   # name port max-wait-seconds
   local name=$1 port=$2 wait=$3 pidf="$H/run/$1.pid" i
   if [ -f "$pidf" ] && kill -0 "$(cat "$pidf")" 2>/dev/null; then log "$name already running"; return 0; fi
-  port_open "$port" && die "port $port is already in use by something else - free it, then retry"
+  if port_open "$port"; then   # stale/missing pid file but the port is served: adopt the listener instead of dying (supervisor-safe)
+    local lp; lp=$(ss -ltnpH "sport = :$port" 2>/dev/null | grep -o 'pid=[0-9]*' | head -1 | cut -d= -f2 || true)
+    if [ -n "$lp" ]; then echo "$lp" > "$pidf"; log "$name already listening on :$port (adopted pid $lp)"; else warn "$name: :$port is in use but its pid is unknown - treating as running"; fi
+    return 0
+  fi
   setsid "$PWD/services/$name.sh" > "$H/logs/$name.log" 2>&1 < /dev/null &
   echo $! > "$pidf"
   for ((i = 0; i < wait; i++)); do
