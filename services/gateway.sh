@@ -16,6 +16,9 @@ origins='http://localhost:3000,http://127.0.0.1:3000,http://localhost:8088,http:
 if [ -n "${NIMBUS_PUBLIC_HOST:-}" ]; then   # e.g. gateway.example.com
   hosts="$hosts,$NIMBUS_PUBLIC_HOST"; origins="$origins,https://$NIMBUS_PUBLIC_HOST"
 fi
+# Upstash Box preview proxy forwards Host as <container-ip>:<port>, not the public hostname; allow it or /mcp returns 421.
+cip="$(hostname -I 2>/dev/null | awk '{print $1}')"
+[ -n "$cip" ] && hosts="$hosts,$cip:*"
 export MCP_ALLOWED_HOSTS="$hosts" MCP_ALLOWED_ORIGINS="$origins"
 # linkedin-mcp starts its own Chromium; make it take turns with browser-mcp Chrome (see services/lazy-chrome.py).
 python3 "$REPO_DIR/services/mcp-overlay.py" "$H/release/mcp.json"
