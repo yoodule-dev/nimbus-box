@@ -6,6 +6,8 @@ downloaded release file, so the settings are re-applied each start (also after s
 
   linkedin-mcp: CHROME_PATH -> services/linkedin-chrome.py, so its own Chromium takes turns with browser-mcp's
                 Chrome instead of running next to it (a small box, pids.max=512, cannot fit both).
+  any server env: the compose service host "redis" (e.g. nimbus-mcp's FASTMCP_DOCKET_URL) does not resolve without
+                Docker, so it is rewritten to 127.0.0.1 - otherwise the docket worker retries forever (~2 warnings/s).
   Node servers (npx/node): UV_THREADPOOL_SIZE and --v8-pool-size in NODE_OPTIONS, which cut each Node process
                 by several threads. Defaults are 1; set UV_THREADPOOL_SIZE / NIMBUS_V8_POOL_SIZE in .env to raise
                 them on bigger machines (0 for NIMBUS_V8_POOL_SIZE leaves NODE_OPTIONS alone).
@@ -23,6 +25,16 @@ if 'linkedin-mcp' in srv:
     if env.get('CHROME_PATH') != want:
         env['CHROME_PATH'] = want
         changed.append('linkedin-mcp CHROME_PATH')
+
+n = 0
+for name, cfg in srv.items():
+    env = cfg.get('env') if isinstance(cfg, dict) else None
+    for k, v in (env or {}).items():
+        if isinstance(v, str) and '@redis:' in v:
+            env[k] = v.replace('@redis:', '@127.0.0.1:')
+            n += 1
+if n:
+    changed.append('%d redis host(s) -> 127.0.0.1' % n)
 
 uv = os.environ.get('UV_THREADPOOL_SIZE', '1')
 v8 = os.environ.get('NIMBUS_V8_POOL_SIZE', '1')

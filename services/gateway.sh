@@ -11,6 +11,9 @@ export REDIS_URL="redis://:${REDIS_PASSWORD}@127.0.0.1:$REDIS_PORT/0"
 export FASTMCP_DOCKET_URL="$REDIS_URL"
 export POSTGRES_URL="postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@127.0.0.1:$PG_PORT/postgres"
 export OLLAMA_BASE_URL="${OLLAMA_BASE_URL:-http://127.0.0.1:11434/api}"
+# nimbus-mcp calls the dashboard at NIMBUS_URL (compose default http://localhost:3000). mcp.json substitutes ${NIMBUS_URL} from here,
+# so unset/empty reaches it as "" and every dashboard tool fails with "Request URL is missing an http:// protocol".
+export NIMBUS_URL="${NIMBUS_URL:-http://127.0.0.1:$PROXY_PORT}"
 hosts='gateway:*,nimbus-desktop:*,127.0.0.1:*,localhost:*,[::1]:*'
 origins='http://localhost:3000,http://127.0.0.1:3000,http://localhost:8088,http://127.0.0.1:8088'
 if [ -n "${NIMBUS_PUBLIC_HOST:-}" ]; then   # e.g. gateway.example.com
