@@ -34,6 +34,11 @@ start_svc gateway   "$GATEWAY_PORT"   180
 start_svc dashboard "$DASHBOARD_PORT" 180
 start_svc desktop   "${DESKTOP_PORT:-6080}" 60   # noVNC desktop (needs the gateway to have created vnc_passwd)
 
+# pid budget sampler: logs to $H/logs/pids.log when the container nears its pid limit
+if ! pgrep -f '[p]id-sampler.sh' >/dev/null 2>&1; then
+  setsid "$PWD/services/pid-sampler.sh" >/dev/null 2>&1 < /dev/null 9>&- &
+fi
+
 log "Nimbus is running"
 echo "   dashboard  http://localhost:$DASHBOARD_PORT   (public/preview: expose :$PROXY_PORT)"
 echo "   gateway    http://localhost:$GATEWAY_PORT/mcp"

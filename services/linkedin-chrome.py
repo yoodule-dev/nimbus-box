@@ -31,4 +31,6 @@ try:
 except OSError:
     pass
 
-os.execv(exe, [exe] + sys.argv[1:])
+# Same process caps as browser-mcp's Chrome (desktop.sh): this box has pids.max=512.
+CAPS = ['--renderer-process-limit=1', '--in-process-gpu', '--disable-background-networking', '--disable-sync', '--num-raster-threads=1']
+os.execv(exe, [exe] + sys.argv[1:] + [c for c in CAPS if c not in sys.argv])
