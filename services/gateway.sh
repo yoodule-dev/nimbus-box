@@ -28,6 +28,8 @@ python3 "$REPO_DIR/services/mcp-overlay.py" "$H/release/mcp.json"
 python3 "$REPO_DIR/services/linkedin-patch.py" "$R/app/servers/linkedin-mcp/linkedin_mcp_server/drivers/browser.py"
 # Canva (and other strict AS) reject Basic auth + client_id in the token body; see services/mcp-oauth-patch.py
 python3 "$REPO_DIR/services/mcp-oauth-patch.py" "$R/app/.venv/lib/python3.12/site-packages/mcp/client/auth/oauth2.py"
+# nimbus_agent called the gateway without credentials (401 under GATEWAY_AUTH_MODE=required); see services/agent-auth-patch.py
+python3 "$REPO_DIR/services/agent-auth-patch.py" "$R/app/servers/nimbus-mcp/nimbus_mcp/agent_body.py"
 exec "$H/bin/proot" -0 -r "$R" -b /proc -b /dev \
   -b /etc/resolv.conf:/etc/resolv.conf \
   -b "$H/data/gateway-auth:/app/data/auth" \
