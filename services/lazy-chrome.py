@@ -35,6 +35,31 @@ def alive():
     return proc is not None and proc.poll() is None
 
 
+def sweep_metrics(max_age=0):
+    """Chrome leaves a 4 MB BrowserMetrics-*.pma per process when it is killed instead of exiting cleanly
+    (about one per start/stop cycle). Remove the ones whose process no longer exists, in the profile dir and in
+    Chrome's default config dirs. The newest spare file and anything younger than max_age seconds is kept."""
+    dirs = set()
+    if PROFILE:
+        dirs.update([PROFILE, os.path.join(PROFILE, 'BrowserMetrics')])
+    for home in {os.environ.get('HOME', ''), '/root', '/home/boxuser'}:
+        if home:
+            dirs.add(os.path.join(home, '.config/google-chrome/BrowserMetrics'))
+    now = time.time()
+    for d in dirs:
+        for f in glob.glob(os.path.join(d, 'BrowserMetrics-*.pma')):
+            name = os.path.basename(f)
+            if name == 'BrowserMetrics-spare.pma':
+                continue
+            try:
+                pid = int(name[:-4].rsplit('-', 1)[1], 16)
+                if os.path.exists('/proc/%d' % pid) or now - os.path.getmtime(f) < max_age:
+                    continue
+                os.remove(f)
+            except (ValueError, IndexError, OSError):
+                pass
+
+
 async def stop_chrome(grace=15):
     global proc
     p = proc
@@ -54,6 +79,7 @@ async def stop_chrome(grace=15):
             pass
 
     await asyncio.get_running_loop().run_in_executor(None, kill)
+    sweep_metrics()
 
 
 def kill_tree(pid):
@@ -190,14 +216,20 @@ async def control(r, w):
 
 
 async def reaper():
+    ticks = 0
     while True:
         await asyncio.sleep(10)
+        ticks += 1
+        if ticks % 6 == 0:   # every ~60 sec: remove metrics for processes that have exited
+            sweep_metrics()
         if alive() and conns == 0 and locks == 0 and time.time() - last > IDLE:
             await stop_chrome()
 
 
 async def main():
     global lock
+    # Sweep stale BrowserMetrics left by Chrome processes from the previous daemon lifetime.
+    sweep_metrics()
     lock = asyncio.Lock()
     srv = await asyncio.start_server(handle, '127.0.0.1', PORT)
     ctl = await asyncio.start_server(control, '127.0.0.1', CONTROL)
